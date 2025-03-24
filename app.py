@@ -67,10 +67,8 @@ def create_system_prompt():
     notes_data = st.session_state.db_manager.get_all_notes()
     
     system_prompt = f"""
-    Bạn là trợ lý gia đình thông minh tên là AIRA (AI Relationship Assistant). 
-    Nhiệm vụ của bạn là giúp quản lý thông tin về các thành viên trong gia đình, 
-    sở thích của họ, các sự kiện, ghi chú, và phân tích hình ảnh liên quan đến gia đình. 
-    Khi người dùng yêu cầu, bạn phải thực hiện ngay các hành động sau:
+    Bạn là trợ lý gia đình thông minh. Nhiệm vụ của bạn là giúp quản lý thông tin về các thành viên trong gia đình, 
+    sở thích của họ, các sự kiện, ghi chú, và phân tích hình ảnh liên quan đến gia đình. Khi người dùng yêu cầu, bạn phải thực hiện ngay các hành động sau:
     
     1. Thêm thông tin về thành viên gia đình (tên, tuổi, sở thích)
     2. Cập nhật sở thích của thành viên gia đình
@@ -112,12 +110,6 @@ def create_system_prompt():
     - Nếu người dùng gửi hình ảnh món ăn, hãy mô tả món ăn, và đề xuất cách nấu hoặc thông tin dinh dưỡng nếu phù hợp
     - Nếu là hình ảnh hoạt động gia đình, hãy mô tả hoạt động và đề xuất cách ghi nhớ khoảnh khắc đó
     - Với bất kỳ hình ảnh nào, hãy giúp người dùng liên kết nó với thành viên gia đình hoặc sự kiện nếu phù hợp
-    
-    PHONG CÁCH:
-    1. Cá nhân hóa thông tin dựa trên người dùng hiện tại
-    2. Giao tiếp thân thiện, ngắn gọn nhưng đầy đủ
-    3. Sử dụng emoji phù hợp cho các chủ đề
-    4. Luôn đề xuất các bước tiếp theo hoặc gợi ý liên quan
     """
     
     # Thêm thông tin về người dùng hiện tại
@@ -149,76 +141,103 @@ def create_system_prompt():
     
     return system_prompt
 
-
 def process_commands(response: str, current_member: str = None):
     """Xử lý các lệnh từ phản hồi của trợ lý AI"""
     if not st.session_state.openai_service or not st.session_state.db_manager:
         return
     
-    commands = st.session_state.openai_service.process_assistant_response(response)
+    try:
+        logger.info(f"Đang xử lý phản hồi của trợ lý, độ dài: {len(response)}")
+        commands = st.session_state.openai_service.process_assistant_response(response)
+        
+        if "ADD_EVENT" in commands:
+            logger.info("Xử lý lệnh ADD_EVENT")
+            details = commands["ADD_EVENT"]
+            
+            # Xử lý các từ ngữ tương đối về thời gian
+            if details.get('date') and not details['date'][0].isdigit():
+                relative_date = DateUtils.get_date_from_relative_term(details['date'])
+                if relative_date:
+                    details['date'] = relative_date.strftime("%Y-%m-%d")
+                    logger.info(f"Đã chuyển đổi ngày thành: {details['date']}")
+            
+            # Thêm thông tin về người tạo sự kiện
+            if current_member:
+                details['created_by'] = current_member
+            
+            logger.info(f"Thêm sự kiện: {details.get('title', 'Không tiêu đề')}")
+            event_id = st.session_state.db_manager.add_event(details)
+            if event_id:
+                st.success(f"Đã thêm sự kiện: {details.get('title', '')}")
+            else:
+                st.error("Không thể thêm sự kiện")
+        
+        if "UPDATE_EVENT" in commands:
+            logger.info("Xử lý lệnh UPDATE_EVENT")
+            details = commands["UPDATE_EVENT"]
+            
+            # Xử lý các từ ngữ tương đối về thời gian
+            if details.get('date') and not details['date'][0].isdigit():
+                relative_date = DateUtils.get_date_from_relative_term(details['date'])
+                if relative_date:
+                    details['date'] = relative_date.strftime("%Y-%m-%d")
+                    logger.info(f"Đã chuyển đổi ngày thành: {details['date']}")
+            
+            logger.info(f"Cập nhật sự kiện: {details.get('title', 'Không tiêu đề')}")
+            success = st.session_state.db_manager.update_event(details.get('id'), details)
+            if success:
+                st.success(f"Đã cập nhật sự kiện: {details.get('title', '')}")
+            else:
+                st.error("Không thể cập nhật sự kiện")
+        
+        if "DELETE_EVENT" in commands:
+            logger.info("Xử lý lệnh DELETE_EVENT")
+            event_id = commands["DELETE_EVENT"]
+            success = st.session_state.db_manager.delete_event(event_id)
+            if success:
+                st.success("Đã xóa sự kiện!")
+            else:
+                st.error("Không thể xóa sự kiện")
+        
+        if "ADD_FAMILY_MEMBER" in commands:
+            logger.info("Xử lý lệnh ADD_FAMILY_MEMBER")
+            details = commands["ADD_FAMILY_MEMBER"]
+            member_id = st.session_state.db_manager.add_family_member(details)
+            if member_id:
+                st.success(f"Đã thêm thành viên: {details.get('name', '')}")
+            else:
+                st.error("Không thể thêm thành viên mới")
+        
+        if "UPDATE_PREFERENCE" in commands:
+            logger.info("Xử lý lệnh UPDATE_PREFERENCE")
+            details = commands["UPDATE_PREFERENCE"]
+            member_id = details.get("id")
+            key = details.get("key")
+            value = details.get("value")
+            
+            success = st.session_state.db_manager.update_preference(member_id, key, value)
+            if success:
+                st.success("Đã cập nhật sở thích!")
+            else:
+                st.error("Không thể cập nhật sở thích")
+        
+        if "ADD_NOTE" in commands:
+            logger.info("Xử lý lệnh ADD_NOTE")
+            details = commands["ADD_NOTE"]
+            
+            # Thêm thông tin về người tạo ghi chú
+            if current_member:
+                details['created_by'] = current_member
+            
+            note_id = st.session_state.db_manager.add_note(details)
+            if note_id:
+                st.success("Đã thêm ghi chú!")
+            else:
+                st.error("Không thể thêm ghi chú")
     
-    if "ADD_EVENT" in commands:
-        details = commands["ADD_EVENT"]
-        
-        # Xử lý các từ ngữ tương đối về thời gian
-        if details.get('date') and not details['date'][0].isdigit():
-            relative_date = DateUtils.get_date_from_relative_term(details['date'])
-            if relative_date:
-                details['date'] = relative_date.strftime("%Y-%m-%d")
-        
-        # Thêm thông tin về người tạo sự kiện
-        if current_member:
-            details['created_by'] = current_member
-        
-        event_id = st.session_state.db_manager.add_event(details)
-        if event_id:
-            st.success(f"Đã thêm sự kiện: {details.get('title', '')}")
-    
-    if "UPDATE_EVENT" in commands:
-        details = commands["UPDATE_EVENT"]
-        
-        # Xử lý các từ ngữ tương đối về thời gian
-        if details.get('date') and not details['date'][0].isdigit():
-            relative_date = DateUtils.get_date_from_relative_term(details['date'])
-            if relative_date:
-                details['date'] = relative_date.strftime("%Y-%m-%d")
-        
-        success = st.session_state.db_manager.update_event(details.get('id'), details)
-        if success:
-            st.success(f"Đã cập nhật sự kiện: {details.get('title', '')}")
-    
-    if "DELETE_EVENT" in commands:
-        event_id = commands["DELETE_EVENT"]
-        success = st.session_state.db_manager.delete_event(event_id)
-        if success:
-            st.success("Đã xóa sự kiện!")
-    
-    if "ADD_FAMILY_MEMBER" in commands:
-        details = commands["ADD_FAMILY_MEMBER"]
-        member_id = st.session_state.db_manager.add_family_member(details)
-        if member_id:
-            st.success(f"Đã thêm thành viên: {details.get('name', '')}")
-    
-    if "UPDATE_PREFERENCE" in commands:
-        details = commands["UPDATE_PREFERENCE"]
-        member_id = details.get("id")
-        key = details.get("key")
-        value = details.get("value")
-        
-        success = st.session_state.db_manager.update_preference(member_id, key, value)
-        if success:
-            st.success("Đã cập nhật sở thích!")
-    
-    if "ADD_NOTE" in commands:
-        details = commands["ADD_NOTE"]
-        
-        # Thêm thông tin về người tạo ghi chú
-        if current_member:
-            details['created_by'] = current_member
-        
-        note_id = st.session_state.db_manager.add_note(details)
-        if note_id:
-            st.success("Đã thêm ghi chú!")
+    except Exception as e:
+        logger.error(f"Lỗi khi xử lý lệnh: {e}")
+        st.error("Có lỗi xảy ra khi xử lý yêu cầu")
 
 
 async def handle_assistant_response(query: str):
@@ -278,6 +297,9 @@ async def handle_assistant_response(query: str):
         # Hiển thị phản hồi cuối cùng
         response_container.markdown(full_response)
     
+    # Hiển thị phản hồi đầy đủ trong log để debug
+    logger.info(f"Phản hồi đầy đủ từ trợ lý: {full_response[:200]}...")
+    
     # Xử lý các lệnh trong phản hồi
     process_commands(full_response, st.session_state.current_member)
     
@@ -298,7 +320,6 @@ async def handle_assistant_response(query: str):
             st.session_state.messages,
             summary
         )
-
 
 def handle_suggested_question(question: str):
     """Xử lý khi người dùng chọn câu hỏi gợi ý"""

@@ -253,32 +253,41 @@ class OpenAIService:
         try:
             # Xử lý lệnh thêm sự kiện
             if "##ADD_EVENT:" in response:
+                logger.info("Tìm thấy lệnh ADD_EVENT")
                 cmd_start = response.index("##ADD_EVENT:") + len("##ADD_EVENT:")
                 cmd_end = response.index("##", cmd_start)
                 cmd = response[cmd_start:cmd_end].strip()
+                
+                logger.info(f"Nội dung lệnh ADD_EVENT: {cmd}")
                 
                 try:
                     details = json.loads(cmd)
                     if isinstance(details, dict):
                         commands["ADD_EVENT"] = details
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
                     logger.error(f"Lỗi khi phân tích JSON cho ADD_EVENT: {cmd}")
+                    logger.error(f"Chi tiết lỗi: {e}")
             
             # Xử lý lệnh cập nhật sự kiện
             if "##UPDATE_EVENT:" in response:
+                logger.info("Tìm thấy lệnh UPDATE_EVENT")
                 cmd_start = response.index("##UPDATE_EVENT:") + len("##UPDATE_EVENT:")
                 cmd_end = response.index("##", cmd_start)
                 cmd = response[cmd_start:cmd_end].strip()
+                
+                logger.info(f"Nội dung lệnh UPDATE_EVENT: {cmd}")
                 
                 try:
                     details = json.loads(cmd)
                     if isinstance(details, dict):
                         commands["UPDATE_EVENT"] = details
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
                     logger.error(f"Lỗi khi phân tích JSON cho UPDATE_EVENT: {cmd}")
+                    logger.error(f"Chi tiết lỗi: {e}")
             
             # Xử lý lệnh xóa sự kiện
             if "##DELETE_EVENT:" in response:
+                logger.info("Tìm thấy lệnh DELETE_EVENT")
                 cmd_start = response.index("##DELETE_EVENT:") + len("##DELETE_EVENT:")
                 cmd_end = response.index("##", cmd_start)
                 cmd = response[cmd_start:cmd_end].strip()
@@ -286,6 +295,7 @@ class OpenAIService:
             
             # Xử lý lệnh thêm thành viên gia đình
             if "##ADD_FAMILY_MEMBER:" in response:
+                logger.info("Tìm thấy lệnh ADD_FAMILY_MEMBER")
                 cmd_start = response.index("##ADD_FAMILY_MEMBER:") + len("##ADD_FAMILY_MEMBER:")
                 cmd_end = response.index("##", cmd_start)
                 cmd = response[cmd_start:cmd_end].strip()
@@ -294,11 +304,13 @@ class OpenAIService:
                     details = json.loads(cmd)
                     if isinstance(details, dict):
                         commands["ADD_FAMILY_MEMBER"] = details
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
                     logger.error(f"Lỗi khi phân tích JSON cho ADD_FAMILY_MEMBER: {cmd}")
+                    logger.error(f"Chi tiết lỗi: {e}")
             
             # Xử lý lệnh cập nhật sở thích
             if "##UPDATE_PREFERENCE:" in response:
+                logger.info("Tìm thấy lệnh UPDATE_PREFERENCE")
                 cmd_start = response.index("##UPDATE_PREFERENCE:") + len("##UPDATE_PREFERENCE:")
                 cmd_end = response.index("##", cmd_start)
                 cmd = response[cmd_start:cmd_end].strip()
@@ -307,11 +319,13 @@ class OpenAIService:
                     details = json.loads(cmd)
                     if isinstance(details, dict):
                         commands["UPDATE_PREFERENCE"] = details
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
                     logger.error(f"Lỗi khi phân tích JSON cho UPDATE_PREFERENCE: {cmd}")
+                    logger.error(f"Chi tiết lỗi: {e}")
             
             # Xử lý lệnh thêm ghi chú
             if "##ADD_NOTE:" in response:
+                logger.info("Tìm thấy lệnh ADD_NOTE")
                 cmd_start = response.index("##ADD_NOTE:") + len("##ADD_NOTE:")
                 cmd_end = response.index("##", cmd_start)
                 cmd = response[cmd_start:cmd_end].strip()
@@ -320,11 +334,13 @@ class OpenAIService:
                     details = json.loads(cmd)
                     if isinstance(details, dict):
                         commands["ADD_NOTE"] = details
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
                     logger.error(f"Lỗi khi phân tích JSON cho ADD_NOTE: {cmd}")
+                    logger.error(f"Chi tiết lỗi: {e}")
             
         except Exception as e:
             logger.error(f"Lỗi khi xử lý phản hồi của trợ lý: {e}")
+            logger.error(f"Phản hồi gốc: {response[:100]}...")
         
         return commands
     
