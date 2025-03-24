@@ -494,69 +494,208 @@ class UIComponents:
         random_seed = int(hashlib.md5(f"{datetime.datetime.now().strftime('%Y-%m-%d_%H')}_{member_id or 'guest'}".encode()).hexdigest(), 16) % 10000
         random.seed(random_seed)
         
-        # Mẫu câu thông tin cụ thể theo nhiều chủ đề khác nhau
+        # Mẫu câu thông tin cụ thể theo nhiều chủ đề khác nhau (không có câu hỏi cuối câu)
         question_templates = {
             "food": [
                 "Top 10 món {food} ngon nhất Việt Nam?",
                 "Công thức làm món {food} ngon tại nhà?",
-                "5 biến tấu món {food} cho bữa {meal}?"
+                "5 biến tấu món {food} cho bữa {meal}?",
+                "Bí quyết làm món {food} ngon như nhà hàng 5 sao?",
+                "Cách làm món {food} chuẩn vị {season}?",
+                "3 cách chế biến món {food} giảm 50% calo?"
             ],
             "movies": [
-                "Top 5 phim chiếu rạp tuần này?",
+                "Top 5 phim chiếu rạp tuần này: {movie1}, {movie2}, {movie3} - Đặt vé ngay để nhận ưu đãi.",
                 "Phim mới ra mắt {movie1}?",
-                "Đánh giá phim {movie1}?"
+                "Đánh giá phim {movie1}?",
+                "{actor} vừa giành giải Oscar cho vai diễn trong phim {movie1}, đánh bại 4 đối thủ nặng ký khác.",
+                "5 bộ phim kinh điển mọi thời đại?",
+                "Lịch chiếu phim {movie1} cuối tuần này?"
             ],
             "football": [
                 "Kết quả Champions League?",
-                "BXH Ngoại hạng Anh?",
-                "Chuyển nhượng bóng đá?"
+                "BXH Ngoại hạng Anh sau vòng 30?",
+                "Chuyển nhượng bóng đá?",
+                "Lịch thi đấu vòng tứ kết World Cup?",
+                "Tổng hợp bàn thắng đẹp nhất tuần?",
+                "Thống kê {player1} mùa này?"
             ],
             "technology": [
                 "So sánh iPhone 16 Pro và Samsung S24 Ultra?",
                 "5 tính năng AI mới trên smartphone 2024?",
-                "Đánh giá laptop gaming {laptop_model}?"
+                "Đánh giá laptop gaming {laptop_model}?",
+                "Cách tối ưu hóa pin điện thoại tăng 30% thời lượng?",
+                "3 ứng dụng quản lý công việc tốt nhất 2024?",
+                "Tin công nghệ?"
             ],
             "health": [
-                "5 loại thực phẩm tăng cường miễn dịch?",
-                "3 bài tập cardio đốt mỡ bụng hiệu quả?",
+                "5 loại thực phẩm tăng cường miễn dịch mùa {season}?",
+                "Chế độ ăn Địa Trung Hải giúp giảm 30% nguy cơ bệnh tim mạch?",
+                "3 bài tập cardio đốt mỡ bụng hiệu quả trong 15 phút?",
+                "Nghiên cứu mới?",
+                "Cách phòng tránh cảm cúm mùa {season}?",
                 "Thực đơn 7 ngày giàu protein?"
             ],
             "family": [
                 "10 hoạt động cuối tuần gắn kết gia đình?",
+                "5 trò chơi phát triển IQ cho trẻ 3-6 tuổi?.",
                 "Bí quyết dạy trẻ quản lý tài chính?",
-                "Lịch trình khoa học cho trẻ?"
+                "Lịch trình khoa học cho trẻ?",
+                "Cách giải quyết mâu thuẫn anh chị em?",
+                "5 dấu hiệu trẻ gặp khó khăn tâm lý cần hỗ trợ?"
+            ],
+            "travel": [
+                "Top 5 điểm du lịch Việt Nam mùa {season}?",
+                "Kinh nghiệm du lịch tiết kiệm?",
+                "Lịch trình du lịch Đà Nẵng 3 ngày?",
+                "5 món đặc sản không thể bỏ qua khi đến Huế?",
+                "Cách chuẩn bị hành lý cho chuyến du lịch 5 ngày?",
+                "Kinh nghiệm đặt phòng khách sạn?"
             ],
             "news": [
                 "Tin kinh tế?",
                 "Tin thời tiết?",
-                "Tin giáo dục?"
+                "Tin giáo dục?",
+                "Tin giao thông?",
+                "Tin y tế?",
+                "Tin văn hóa?"
             ]
         }
         
         # Các biến thay thế trong mẫu câu
         replacements = {
-            "food": ["phở", "bánh mì", "cơm rang", "gỏi cuốn", "bún chả"],
+            "food": ["phở", "bánh mì", "cơm rang", "gỏi cuốn", "bún chả", "bánh xèo", "mì Ý", "sushi", "pizza", "món Hàn Quốc"],
             "meal": ["sáng", "trưa", "tối", "xế"],
-            "movie1": ["The Beekeeper", "Dune 2", "Godzilla x Kong", "Deadpool 3"],
-            "laptop_model": ["Asus ROG", "Lenovo Legion", "MSI Titan"]
+            "event": ["sinh nhật", "họp gia đình", "dã ngoại", "tiệc", "kỳ nghỉ"],
+            "days": ["vài", "2", "3", "7", "10"],
+            "hobby": ["đọc sách", "nấu ăn", "thể thao", "làm vườn", "vẽ", "âm nhạc", "nhiếp ảnh"],
+            "time_of_day": ["sáng", "trưa", "chiều", "tối"],
+            "day": ["thứ Hai", "thứ Ba", "thứ Tư", "thứ Năm", "thứ Sáu", "thứ Bảy", "Chủ Nhật", "cuối tuần"],
+            "season": ["xuân", "hạ", "thu", "đông"],
+            "weather": ["nóng", "lạnh", "mưa", "nắng", "gió"],
+            "music_artist": ["Sơn Tùng M-TP", "Mỹ Tâm", "BTS", "Taylor Swift", "Adele", "Coldplay", "BlackPink"],
+            "actor": ["Ngô Thanh Vân", "Trấn Thành", "Tom Cruise", "Song Joong Ki", "Scarlett Johansson", "Leonardo DiCaprio"],
+            "movie1": ["The Beekeeper", "Dune 2", "Godzilla x Kong", "Deadpool 3", "Inside Out 2", "Twisters", "Bad Boys 4"],
+            "movie2": ["The Fall Guy", "Kingdom of the Planet of the Apes", "Furiosa", "Borderlands", "Alien: Romulus"],
+            "movie3": ["Gladiator 2", "Wicked", "Sonic the Hedgehog 3", "Mufasa", "Moana 2", "Venom 3"],
+            "team1": ["Manchester City", "Arsenal", "Liverpool", "Real Madrid", "Barcelona", "Bayern Munich", "PSG", "Việt Nam"],
+            "team2": ["Chelsea", "Tottenham", "Inter Milan", "Juventus", "Atletico Madrid", "Dortmund", "Thái Lan"],
+            "team3": ["Manchester United", "Newcastle", "AC Milan", "Napoli", "Porto", "Ajax", "Indonesia"],
+            "team4": ["West Ham", "Aston Villa", "Roma", "Lazio", "Sevilla", "Leipzig", "Malaysia"],
+            "player1": ["Haaland", "Salah", "Saka", "Bellingham", "Mbappe", "Martinez", "Quang Hải", "Tiến Linh"],
+            "player2": ["De Bruyne", "Odegaard", "Kane", "Vinicius", "Lewandowski", "Griezmann", "Công Phượng"],
+            "player3": ["Rodri", "Rice", "Son", "Kroos", "Pedri", "Messi", "Văn Hậu", "Văn Lâm"],
+            "score1": ["1", "2", "3", "4", "5"],
+            "score2": ["0", "1", "2", "3"],
+            "minute1": ["12", "23", "45+2", "56", "67", "78", "89+1"],
+            "minute2": ["34", "45", "59", "69", "80", "90+3"],
+            "gameday": ["thứ Bảy", "Chủ nhật", "20/4", "27/4", "4/5", "11/5", "18/5"],
+            "laptop_model": ["Asus ROG Zephyrus G14", "Lenovo Legion Pro 7", "MSI Titan GT77", "Acer Predator Helios", "Alienware m18"]
         }
         
-        # Lấy ngẫu nhiên các câu hỏi từ mỗi chủ đề
-        all_categories = list(question_templates.keys())
-        random.shuffle(all_categories)
+        # Thêm thông tin người dùng cụ thể nếu có 
+        if member_id:
+            family_data = st.session_state.db_manager.get_all_family_members() if st.session_state.db_manager else {}
+            if member_id in family_data:
+                preferences = family_data[member_id].get("preferences", {})
+                
+                if preferences.get("food"):
+                    replacements["food"].insert(0, preferences["food"])
+                
+                if preferences.get("hobby"):
+                    replacements["hobby"].insert(0, preferences["hobby"])
         
+        # Xác định mùa hiện tại
+        current_month = datetime.datetime.now().month
+        if 3 <= current_month <= 5:
+            current_season = "xuân"
+        elif 6 <= current_month <= 8:
+            current_season = "hạ"
+        elif 9 <= current_month <= 11:
+            current_season = "thu"
+        else:
+            current_season = "đông"
+        
+        replacements["season"].insert(0, current_season)
+        
+        # Thêm ngày hiện tại
+        current_day_name = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"][datetime.datetime.now().weekday()]
+        replacements["day"].insert(0, current_day_name)
+        
+        # Thêm bữa ăn phù hợp với thời điểm hiện tại
+        current_hour = datetime.datetime.now().hour
+        if 5 <= current_hour < 10:
+            current_meal = "sáng"
+        elif 10 <= current_hour < 14:
+            current_meal = "trưa"
+        elif 14 <= current_hour < 17:
+            current_meal = "xế"
+        else:
+            current_meal = "tối"
+        
+        replacements["meal"].insert(0, current_meal)
+        replacements["time_of_day"].insert(0, current_meal)
+        
+        # Tạo danh sách các chủ đề ưu tiên theo sở thích người dùng
+        priority_categories = []
+        
+        # Luôn đảm bảo có tin tức trong các gợi ý
+        priority_categories.append("news")
+        
+        # Thêm các chủ đề còn lại
+        remaining_categories = [cat for cat in question_templates.keys() if cat not in priority_categories]
+        
+        # Đảm bảo tách riêng phim và bóng đá nếu người dùng thích cả hai
+        if "movies" not in priority_categories and "football" not in priority_categories:
+            # Nếu cả hai chưa được thêm, thêm cả hai
+            remaining_categories = ["movies", "football"] + [cat for cat in remaining_categories if cat not in ["movies", "football"]]
+        
+        # Kết hợp để có tất cả chủ đề
+        all_categories = priority_categories + remaining_categories
+        
+        # Chọn tối đa max_questions chủ đề, đảm bảo ưu tiên các sở thích
         selected_categories = all_categories[:max_questions]
-        questions = []
         
+        # Tạo câu gợi ý cho mỗi chủ đề
+        questions = []
         for category in selected_categories:
+            if len(questions) >= max_questions:
+                break
+                
+            # Chọn một mẫu câu ngẫu nhiên từ chủ đề
             template = random.choice(question_templates[category])
             
             # Thay thế các biến trong template
             question = template
-            for key, values in replacements.items():
+            for key in replacements:
                 if "{" + key + "}" in question:
-                    question = question.replace("{" + key + "}", random.choice(values))
+                    replacement = random.choice(replacements[key])
+                    question = question.replace("{" + key + "}", replacement)
             
             questions.append(question)
+        
+        # Đảm bảo đủ số lượng câu hỏi
+        if len(questions) < max_questions:
+            # Ưu tiên thêm từ tin tức và thông tin giải trí
+            more_templates = []
+            more_templates.extend(question_templates["news"])
+            more_templates.extend(question_templates["movies"])
+            more_templates.extend(question_templates["football"])
+            
+            random.shuffle(more_templates)
+            
+            while len(questions) < max_questions and more_templates:
+                template = more_templates.pop(0)
+                
+                # Thay thế các biến trong mẫu câu
+                question = template
+                for key in replacements:
+                    if "{" + key + "}" in question:
+                        replacement = random.choice(replacements[key])
+                        question = question.replace("{" + key + "}", replacement)
+                
+                # Tránh trùng lặp
+                if question not in questions:
+                    questions.append(question)
         
         return questions

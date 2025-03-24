@@ -172,15 +172,16 @@ class OpenAIService:
                     "member": member_info,
                     "upcoming_events": upcoming_events,
                     "recent_topics": recent_topics,
-                    "current_time": time.strftime("%H:%M"),
-                    "current_day": time.strftime("%A"),
-                    "current_date": time.strftime("%Y-%m-%d")
+                    "current_time": datetime.datetime.now().strftime("%H:%M"),
+                    "current_day": datetime.datetime.now().strftime("%A"),
+                    "current_date": datetime.datetime.now().strftime("%Y-%m-%d")
                 }
                 
                 prompt = f"""
                 Hãy tạo {max_questions} câu gợi ý đa dạng và cá nhân hóa cho người dùng trợ lý gia đình dựa trên thông tin sau:
                 
                 Thông tin người dùng: {json.dumps(member_info, ensure_ascii=False)}
+                            
                 
                 Yêu cầu:
                 1. Mỗi câu gợi ý nên tập trung vào MỘT sở thích cụ thể, không kết hợp nhiều sở thích
@@ -189,6 +190,17 @@ class OpenAIService:
                 4. Mục đích là cung cấp thông tin hữu ích, không phải bắt đầu cuộc trò chuyện
                 5. Chỉ trả về danh sách các câu gợi ý, mỗi câu trên một dòng
                 6. Không thêm đánh số hoặc dấu gạch đầu dòng
+                
+                Ví dụ tốt:
+                - "Top 5 phim hành động hay nhất 2023?"
+                - "Công thức bánh mì nguyên cám giảm cân?"
+                - "Kết quả Champions League?"
+                - "5 bài tập cardio giảm mỡ bụng hiệu quả?"
+                
+                Ví dụ không tốt:
+                - "Bạn đã biết bộ phim 'The Goal' vừa được phát hành và nhận nhiều phản hồi tích cực từ khán giả chưa?" (Kết hợp phim + bóng đá)
+                - "Kết quả trận đấu Champions League: Man City 3-1 Real Madrid, bạn có theo dõi không?" (Kết thúc bằng câu hỏi)
+                - "Bạn có muốn xem những phát hiện mới về dinh dưỡng không?" (Không cung cấp thông tin cụ thể)
                 
                 Trả về chính xác {max_questions} câu gợi ý.
                 """

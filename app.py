@@ -399,63 +399,78 @@ def create_suggested_questions():
     # Cache key cho câu hỏi gợi ý
     cache_key = f"suggested_questions_{st.session_state.current_member}_{datetime.datetime.now().strftime('%Y-%m-%d_%H')}"
     
-    # Tạo câu hỏi gợi ý nếu chưa có trong cache
-    if "question_cache" not in st.session_state or cache_key not in st.session_state.question_cache:
-        # Tạo câu hỏi gợi ý dựa trên người dùng hiện tại
-        member_info = {}
-        if st.session_state.current_member:
-            member = st.session_state.db_manager.get_family_member(st.session_state.current_member)
-            if member:
-                member_info = {
-                    "name": member.get("name", ""),
-                    "age": member.get("age", ""),
-                    "preferences": member.get("preferences", {})
-                }
-        
-        # Lấy các sự kiện sắp tới
-        all_events = st.session_state.db_manager.get_all_events()
-        upcoming_events = DateUtils.get_upcoming_events(all_events, 14)
-        
-        # Lấy chủ đề từ lịch sử trò chuyện gần đây
-        recent_topics = []
-        if st.session_state.current_member:
-            chat_history = st.session_state.db_manager.get_chat_history(st.session_state.current_member, 3)
-            for chat in chat_history:
-                summary = chat.get("summary", "")
-                if summary:
-                    recent_topics.append(summary)
-        
+    # Kiểm tra cache để tránh tạo câu hỏi mới quá thường xuyên
+    if "question_cache" in st.session_state and cache_key in st.session_state.question_cache:
+        return st.session_state.question_cache[cache_key]
+    
+    # Xác định trạng thái người dùng hiện tại
+    member_info = {}
+    if st.session_state.current_member:
+        member = st.session_state.db_manager.get_family_member(st.session_state.current_member)
+        if member:
+            member_info = {
+                "name": member.get("name", ""),
+                "age": member.get("age", ""),
+                "preferences": member.get("preferences", {})
+            }
+    
+    # Thu thập dữ liệu về các sự kiện sắp tới
+    upcoming_events = []
+    all_events = st.session_state.db_manager.get_all_events()
+    today = datetime.datetime.now().date()
+    
+    for event_id, event in all_events.items():
         try:
-            # Tạo câu hỏi gợi ý
-            suggested_questions = AsyncHelper.run_async(
-                st.session_state.openai_service.generate_dynamic_suggested_questions
-            )(member_info, upcoming_events, recent_topics, 5)
-            
-            # Nếu không có câu hỏi từ OpenAI, sử dụng phương pháp dự phòng
-            if not suggested_questions:
-                suggested_questions = UIComponents.fallback_suggested_questions(
-                    st.session_state.current_member,
-                    5
-                )
-            
-            # Lưu vào cache
-            if "question_cache" not in st.session_state:
-                st.session_state.question_cache = {}
-            
-            st.session_state.question_cache[cache_key] = suggested_questions
-            return suggested_questions
-        
+            event_date = datetime.datetime.strptime(event.get("date", ""), "%Y-%m-%d").date()
+            if event_date >= today:
+                date_diff = (event_date - today).days
+                if date_diff <= 14:  # Chỉ quan tâm sự kiện trong 2 tuần tới
+                    upcoming_events.append({
+                        "title": event.get("title", ""),
+                        "date": event.get("date", ""),
+                        "days_away": date_diff
+                    })
         except Exception as e:
-            logger.error(f"Lỗi khi tạo câu hỏi gợi ý: {e}")
-            fallback_questions = UIComponents.fallback_suggested_questions(
+            logger.error(f"Lỗi khi xử lý ngày sự kiện: {e}")
+            continue
+    
+    # Lấy chủ đề từ lịch sử trò chuyện gần đây
+    recent_topics = []
+    if st.session_state.current_member:
+        chat_history = st.session_state.db_manager.get_chat_history(st.session_state.current_member, 3)
+        for chat in chat_history:
+            summary = chat.get("summary", "")
+            if summary:
+                recent_topics.append(summary)
+    
+    try:
+        # Tạo câu hỏi gợi ý bằng OpenAI API
+        suggested_questions = AsyncHelper.run_async(
+            st.session_state.openai_service.generate_dynamic_suggested_questions
+        )(member_info, upcoming_events, recent_topics, 5)
+        
+        # Nếu không có câu hỏi từ OpenAI, sử dụng phương pháp dự phòng
+        if not suggested_questions:
+            suggested_questions = UIComponents.fallback_suggested_questions(
                 st.session_state.current_member,
                 5
             )
-            st.session_state.question_cache[cache_key] = fallback_questions
-            return fallback_questions
-    else:
-        # Lấy câu hỏi từ cache
-        return st.session_state.question_cache[cache_key]
+        
+        # Lưu vào cache
+        if "question_cache" not in st.session_state:
+            st.session_state.question_cache = {}
+        
+        st.session_state.question_cache[cache_key] = suggested_questions
+        return suggested_questions
+    
+    except Exception as e:
+        logger.error(f"Lỗi khi tạo câu hỏi gợi ý: {e}")
+        fallback_questions = UIComponents.fallback_suggested_questions(
+            st.session_state.current_member,
+            5
+        )
+        st.session_state.question_cache[cache_key] = fallback_questions
+        return fallback_questions
 
 
 def api_key_changed(openai_api_key):
