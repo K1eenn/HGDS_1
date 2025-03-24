@@ -1,3 +1,8 @@
+# services/openai_service.py
+"""
+Dịch vụ tương tác với OpenAI API
+"""
+
 import time
 import asyncio
 from typing import List, Dict, Generator, Optional, Tuple, Any
@@ -8,6 +13,10 @@ import json
 logger = logging.getLogger('family_assistant')
 
 class OpenAIService:
+    """
+    Lớp dịch vụ OpenAI cung cấp các phương thức để tương tác với API của OpenAI
+    """
+    
     def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
         """Khởi tạo dịch vụ OpenAI"""
         self.api_key = api_key
@@ -163,9 +172,9 @@ class OpenAIService:
                     "member": member_info,
                     "upcoming_events": upcoming_events,
                     "recent_topics": recent_topics,
-                    "current_time": datetime.datetime.now().strftime("%H:%M"),
-                    "current_day": datetime.datetime.now().strftime("%A"),
-                    "current_date": datetime.datetime.now().strftime("%Y-%m-%d")
+                    "current_time": time.strftime("%H:%M"),
+                    "current_day": time.strftime("%A"),
+                    "current_date": time.strftime("%Y-%m-%d")
                 }
                 
                 prompt = f"""

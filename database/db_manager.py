@@ -1,13 +1,21 @@
+# database/db_manager.py
+"""
+Quản lý cơ sở dữ liệu và cung cấp các phương thức truy cập dữ liệu
+"""
+
 import sqlite3
 import json
 import os
 import datetime
 import logging
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any, Union, Tuple
+from .models import FamilyMember, Event, Note, ChatHistory, Preference
 
 logger = logging.getLogger('family_assistant')
 
 class DatabaseManager:
+    """Quản lý cơ sở dữ liệu SQLite cho ứng dụng Trợ lý Gia đình"""
+    
     def __init__(self, db_path: str = "family_assistant.db"):
         """Khởi tạo kết nối với cơ sở dữ liệu SQLite"""
         self.db_path = db_path

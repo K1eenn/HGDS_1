@@ -1,3 +1,8 @@
+# services/tavily_service.py
+"""
+Dịch vụ tương tác với Tavily API
+"""
+
 import requests
 import logging
 import json
@@ -8,6 +13,11 @@ from typing import Dict, List, Optional, Any, Union
 logger = logging.getLogger('family_assistant')
 
 class TavilyService:
+    """
+    Lớp dịch vụ Tavily cung cấp các phương thức để tương tác với API của Tavily
+    cho chức năng tìm kiếm thông tin thời gian thực
+    """
+    
     def __init__(self, api_key: str, openai_service: Any):
         """Khởi tạo dịch vụ Tavily"""
         self.api_key = api_key

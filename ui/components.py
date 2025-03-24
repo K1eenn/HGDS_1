@@ -1,3 +1,8 @@
+# ui/components.py
+"""
+Cung cấp các thành phần giao diện người dùng tái sử dụng
+"""
+
 import streamlit as st
 import datetime
 import json
@@ -9,58 +14,17 @@ import hashlib
 import random
 
 class UIComponents:
+    """
+    Lớp cung cấp các thành phần giao diện người dùng tái sử dụng
+    """
+    
     @staticmethod
     def get_image_base64(image_raw: Image.Image) -> str:
         """Chuyển đổi hình ảnh sang base64"""
         buffered = BytesIO()
-        image_raw.save(buffered, format=image_raw.format)
+        image_raw.save(buffered, format=image_raw.format or "JPEG")
         img_byte = buffered.getvalue()
         return base64.b64encode(img_byte).decode('utf-8')
-    
-    @staticmethod
-    def apply_custom_css():
-        """Áp dụng CSS tùy chỉnh cho ứng dụng"""
-        st.markdown("""
-        <style>
-        .main-header {
-            text-align: center;
-            color: #6ca395;
-            font-style: italic;
-            margin-bottom: 20px;
-        }
-        
-        .suggestion-container {
-            margin-top: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .suggestion-title {
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 10px;
-            color: #555;
-        }
-        
-        .suggestion-box {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .stButton>button {
-            border-radius: 20px;
-            border: 1px solid #e0e0e0;
-            background-color: #f8f9fa;
-            transition: all 0.3s;
-        }
-        
-        .stButton>button:hover {
-            background-color: #e8f0fe;
-            border-color: #6ca395;
-        }
-        </style>
-        """, unsafe_allow_html=True)
     
     @staticmethod
     def display_welcome():
@@ -142,6 +106,7 @@ class UIComponents:
                     }
                     db_manager.add_family_member(details)
                     st.success(f"Đã thêm {member_name} vào gia đình!")
+                    st.rerun()
         
         # Xem và chỉnh sửa thành viên gia đình
         with st.expander("👥 Thành viên gia đình"):
@@ -151,17 +116,31 @@ class UIComponents:
                 st.write("Chưa có thành viên nào trong gia đình")
             else:
                 for member_id, member in family_data.items():
-                    st.write(f"**{member['name']}** ({member.get('age', '')})")
+                    # Hiển thị thông tin thành viên
+                    st.markdown(f"""
+                    <div class="member-card">
+                        <div class="member-name">{member['name']}</div>
+                        <div class="member-age">Tuổi: {member.get('age', '')}</div>
+                    """, unsafe_allow_html=True)
                     
                     # Hiển thị sở thích
                     if "preferences" in member:
                         for pref_key, pref_value in member["preferences"].items():
                             if pref_value:
-                                st.write(f"- {pref_key.capitalize()}: {pref_value}")
+                                st.markdown(f"""
+                                <div class="member-preferences">
+                                    <span class="preference-label">{pref_key.capitalize()}:</span> 
+                                    <span class="preference-value">{pref_value}</span>
+                                </div>
+                                """, unsafe_allow_html=True)
+                    
+                    # Kết thúc thẻ và thêm nút chỉnh sửa
+                    st.markdown("</div>", unsafe_allow_html=True)
                     
                     # Nút chỉnh sửa cho mỗi thành viên
                     if st.button(f"Chỉnh sửa {member['name']}", key=f"edit_{member_id}"):
                         st.session_state.editing_member = member_id
+                        st.rerun()
         
         # Form chỉnh sửa thành viên (xuất hiện khi đang chỉnh sửa)
         if "editing_member" in st.session_state and st.session_state.editing_member:
@@ -207,6 +186,7 @@ class UIComponents:
             else:
                 st.error(f"Không tìm thấy thành viên với ID: {member_id}")
                 st.session_state.editing_member = None
+                st.rerun()
     
     @staticmethod
     def events_management_ui(db_manager: Any, current_member: Optional[str] = None):
@@ -239,6 +219,7 @@ class UIComponents:
                     }
                     db_manager.add_event(details)
                     st.success(f"Đã thêm sự kiện: {event_title}!")
+                    st.rerun()
         
         # Xem sự kiện
         with st.expander("📆 Sự kiện"):
@@ -287,32 +268,68 @@ class UIComponents:
                 st.write("Không có sự kiện nào")
             
             for event_id, event in sorted_events:
-                st.write(f"**{event.get('title', 'Sự kiện không tiêu đề')}**")
-                st.write(f"📅 {event.get('date', 'Chưa đặt ngày')} | ⏰ {event.get('time', 'Chưa đặt giờ')}")
+                # Định dạng ngày giờ
+                event_date = event.get('date', 'Chưa đặt ngày')
+                event_time = event.get('time', 'Chưa đặt giờ')
+                
+                try:
+                    # Chuyển đổi định dạng ngày nếu cần thiết
+                    date_obj = datetime.datetime.strptime(event_date, "%Y-%m-%d").date()
+                    date_str = date_obj.strftime("%d/%m/%Y")
+                except:
+                    date_str = event_date
+                
+                # Hiển thị thông tin sự kiện
+                st.markdown(f"""
+                <div class="event-card">
+                    <div class="event-title">{event.get('title', 'Sự kiện không tiêu đề')}</div>
+                    <div class="event-datetime">📅 {date_str} | ⏰ {event_time}</div>
+                """, unsafe_allow_html=True)
                 
                 if event.get('description'):
-                    st.write(event.get('description', ''))
+                    st.markdown(f"""
+                    <div class="event-description">{event.get('description', '')}</div>
+                    """, unsafe_allow_html=True)
                 
+                # Hiển thị người tham gia
                 if event.get('participants'):
-                    st.write(f"👥 {', '.join(event.get('participants', []))}")
+                    st.markdown(f"""
+                    <div class="event-participants">
+                        <span class="participants-label">👥 Người tham gia:</span>
+                    """, unsafe_allow_html=True)
+                    
+                    for participant in event.get('participants', []):
+                        st.markdown(f"""
+                        <span class="participant-name">{participant}</span>
+                        """, unsafe_allow_html=True)
+                    
+                    st.markdown("</div>", unsafe_allow_html=True)
                 
                 # Hiển thị người tạo
                 if event.get('created_by'):
                     creator = db_manager.get_family_member(event.get('created_by'))
                     creator_name = creator.get("name", "") if creator else ""
                     if creator_name:
-                        st.write(f"👤 Tạo bởi: {creator_name}")
+                        st.markdown(f"""
+                        <div class="event-creator">👤 Tạo bởi: {creator_name}</div>
+                        """, unsafe_allow_html=True)
                 
+                # Kết thúc thẻ event-card
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+                # Các nút hành động
                 col1, col2 = st.columns(2)
                 with col1:
                     if st.button(f"Chỉnh sửa", key=f"edit_event_{event_id}"):
                         st.session_state.editing_event = event_id
+                        st.rerun()
                 with col2:
                     if st.button(f"Xóa", key=f"delete_event_{event_id}"):
-                        db_manager.delete_event(event_id)
-                        st.success(f"Đã xóa sự kiện!")
-                        st.rerun()
-                st.divider()
+                        if db_manager.delete_event(event_id):
+                            st.success(f"Đã xóa sự kiện!")
+                            st.rerun()
+                        else:
+                            st.error("Không thể xóa sự kiện.")
         
         # Form chỉnh sửa sự kiện (xuất hiện khi đang chỉnh sửa)
         if "editing_event" in st.session_state and st.session_state.editing_event:
@@ -359,10 +376,12 @@ class UIComponents:
                             "description": new_desc,
                             "participants": new_participants
                         }
-                        db_manager.update_event(event_id, updated_details)
-                        st.session_state.editing_event = None
-                        st.success("Đã cập nhật sự kiện!")
-                        st.rerun()
+                        if db_manager.update_event(event_id, updated_details):
+                            st.session_state.editing_event = None
+                            st.success("Đã cập nhật sự kiện!")
+                            st.rerun()
+                        else:
+                            st.error("Không thể cập nhật sự kiện.")
                     
                     if cancel_event_edits:
                         st.session_state.editing_event = None
@@ -370,6 +389,7 @@ class UIComponents:
             else:
                 st.error(f"Không tìm thấy sự kiện với ID: {event_id}")
                 st.session_state.editing_event = None
+                st.rerun()
     
     @staticmethod
     def notes_management_ui(db_manager: Any, current_member: Optional[str] = None):
@@ -395,6 +415,7 @@ class UIComponents:
                     }
                     db_manager.add_note(details)
                     st.success(f"Đã thêm ghi chú: {note_title}!")
+                    st.rerun()
         
         # Xem ghi chú
         with st.expander("📋 Danh sách ghi chú"):
@@ -425,25 +446,46 @@ class UIComponents:
                 st.write("Không có ghi chú nào")
             
             for note_id, note in sorted_notes:
-                st.write(f"**{note.get('title', 'Ghi chú không tiêu đề')}**")
-                st.write(note.get('content', ''))
+                # Hiển thị thông tin ghi chú
+                st.markdown(f"""
+                <div class="note-card">
+                    <div class="note-title">{note.get('title', 'Ghi chú không tiêu đề')}</div>
+                    <div class="note-content">{note.get('content', '')}</div>
+                """, unsafe_allow_html=True)
                 
+                # Hiển thị các thẻ
                 if note.get('tags'):
-                    tags = ', '.join([f"#{tag}" for tag in note['tags']])
-                    st.write(f"🏷️ {tags}")
+                    st.markdown(f"""
+                    <div class="note-tags">
+                        <span class="tags-label">🏷️ Thẻ:</span>
+                    """, unsafe_allow_html=True)
+                    
+                    for tag in note.get('tags', []):
+                        st.markdown(f"""
+                        <span class="tag-name">#{tag}</span>
+                        """, unsafe_allow_html=True)
+                    
+                    st.markdown("</div>", unsafe_allow_html=True)
                 
                 # Hiển thị người tạo
                 if note.get('created_by'):
                     creator = db_manager.get_family_member(note.get('created_by'))
                     creator_name = creator.get("name", "") if creator else ""
                     if creator_name:
-                        st.write(f"👤 Tạo bởi: {creator_name}")
+                        st.markdown(f"""
+                        <div class="note-creator">👤 Tạo bởi: {creator_name}</div>
+                        """, unsafe_allow_html=True)
                 
+                # Kết thúc thẻ note-card
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+                # Nút xóa
                 if st.button(f"Xóa", key=f"delete_note_{note_id}"):
-                    db_manager.delete_note(note_id)
-                    st.success(f"Đã xóa ghi chú!")
-                    st.rerun()
-                st.divider()
+                    if db_manager.delete_note(note_id):
+                        st.success(f"Đã xóa ghi chú!")
+                        st.rerun()
+                    else:
+                        st.error("Không thể xóa ghi chú.")
     
     @staticmethod
     def fallback_suggested_questions(member_id: Optional[str] = None, max_questions: int = 5) -> List[str]:
