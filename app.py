@@ -72,7 +72,7 @@ def tavily_extract(api_key, urls, include_images=False, extract_depth="basic"):
         logger.error(f"Lỗi khi gọi Tavily API: {e}")
         return None
 
-def tavily_search(api_key, query, search_depth="advanced", max_results=3, include_domains=None, exclude_domains=None):
+def tavily_search(api_key, query, search_depth="advanced", max_results=3, include_domains=None, exclude_domains=None, time_filter=None):
     """
     Thực hiện tìm kiếm thời gian thực sử dụng Tavily Search API
     
@@ -83,6 +83,7 @@ def tavily_search(api_key, query, search_depth="advanced", max_results=3, includ
         max_results (int): Số lượng kết quả tối đa
         include_domains (list): Danh sách domain muốn bao gồm
         exclude_domains (list): Danh sách domain muốn loại trừ
+        time_filter (str): Bộ lọc thời gian ('day', 'week', 'month', 'year' hoặc None)
         
     Returns:
         dict: Kết quả tìm kiếm hoặc None nếu có lỗi
@@ -104,6 +105,11 @@ def tavily_search(api_key, query, search_depth="advanced", max_results=3, includ
     if exclude_domains:
         data["exclude_domains"] = exclude_domains
     
+    # Thêm bộ lọc thời gian nếu được chỉ định
+    if time_filter:
+        data["time_filter"] = time_filter
+        logger.info(f"Áp dụng bộ lọc thời gian: {time_filter}")
+    
     try:
         response = requests.post(
             "https://api.tavily.com/search",
@@ -120,7 +126,7 @@ def tavily_search(api_key, query, search_depth="advanced", max_results=3, includ
         logger.error(f"Lỗi khi gọi Tavily Search API: {e}")
         return None
 
-def search_and_summarize(tavily_api_key, query, openai_api_key):
+def search_and_summarize(tavily_api_key, query, openai_api_key, time_info=""):
     """
     Tìm kiếm và tổng hợp thông tin từ kết quả tìm kiếm
     
@@ -128,6 +134,7 @@ def search_and_summarize(tavily_api_key, query, openai_api_key):
         tavily_api_key (str): Tavily API Key
         query (str): Câu truy vấn tìm kiếm
         openai_api_key (str): OpenAI API Key
+        time_info (str): Thông tin thời gian được trích xuất
         
     Returns:
         str: Thông tin đã được tổng hợp
@@ -136,8 +143,23 @@ def search_and_summarize(tavily_api_key, query, openai_api_key):
         return "Thiếu thông tin để thực hiện tìm kiếm hoặc tổng hợp."
     
     try:
+        # Xác định bộ lọc thời gian dựa trên thông tin thời gian
+        time_filter = None
+        time_info_lower = time_info.lower() if time_info else ""
+        
+        if "hôm nay" in time_info_lower or "ngày hôm nay" in time_info_lower or "today" in time_info_lower:
+            time_filter = "day"
+        elif "tuần này" in time_info_lower or "tuần hiện tại" in time_info_lower or "this week" in time_info_lower:
+            time_filter = "week"
+        elif "tháng này" in time_info_lower or "tháng hiện tại" in time_info_lower or "this month" in time_info_lower:
+            time_filter = "month"
+        elif "năm nay" in time_info_lower or "năm hiện tại" in time_info_lower or "this year" in time_info_lower:
+            time_filter = "year"
+        
+        logger.info(f"Tìm kiếm với câu truy vấn: '{query}', bộ lọc thời gian: {time_filter}")
+        
         # Thực hiện tìm kiếm với Tavily
-        search_results = tavily_search(tavily_api_key, query)
+        search_results = tavily_search(tavily_api_key, query, time_filter=time_filter)
         
         if not search_results or "results" not in search_results:
             return "Không tìm thấy kết quả nào."
@@ -164,11 +186,21 @@ def search_and_summarize(tavily_api_key, query, openai_api_key):
         # Tổng hợp thông tin sử dụng OpenAI
         client = OpenAI(api_key=openai_api_key)
         
-        # Chuẩn bị prompt cho việc tổng hợp
+        # Chuẩn bị prompt cho việc tổng hợp với yêu cầu về thời gian
+        time_instruction = ""
+        if time_info:
+            time_instruction = f"""
+            ĐẶC BIỆT CHÚ Ý: Người dùng yêu cầu thông tin liên quan đến khoảng thời gian: "{time_info}".
+            Chỉ tổng hợp thông tin phù hợp với khoảng thời gian này. Loại bỏ thông tin không liên quan đến thời gian được chỉ định.
+            Nếu không tìm thấy thông tin trong khoảng thời gian được yêu cầu, hãy nêu rõ điều này.
+            """
+        
         prompt = f"""
         Dưới đây là các nội dung trích xuất từ internet liên quan đến câu hỏi: "{query}"
         
         {json.dumps(extracted_contents, ensure_ascii=False)}
+        
+        {time_instruction}
         
         Hãy tổng hợp thông tin từ các nguồn trên để trả lời câu hỏi một cách đầy đủ và chính xác.
         Hãy trình bày thông tin một cách rõ ràng, có cấu trúc.
@@ -196,6 +228,7 @@ def search_and_summarize(tavily_api_key, query, openai_api_key):
     except Exception as e:
         logger.error(f"Lỗi trong quá trình tìm kiếm và tổng hợp: {e}")
         return f"Có lỗi xảy ra trong quá trình tìm kiếm và tổng hợp thông tin: {str(e)}"
+
 
 # Thêm hàm tạo câu hỏi gợi ý động
 def generate_dynamic_suggested_questions(api_key, member_id=None, max_questions=5):
@@ -746,13 +779,14 @@ def save_chat_history(member_id, messages, summary=None):
 def detect_search_intent(query, api_key):
     """
     Phát hiện xem câu hỏi có cần tìm kiếm thông tin thực tế hay không
+    và trích xuất thông tin thời gian từ câu truy vấn
     
     Args:
         query (str): Câu hỏi của người dùng
         api_key (str): OpenAI API key
         
     Returns:
-        tuple: (need_search, search_query)
+        tuple: (need_search, search_query, time_info)
     """
     try:
         client = OpenAI(api_key=api_key)
@@ -760,7 +794,9 @@ def detect_search_intent(query, api_key):
             model=openai_model,
             messages=[
                 {"role": "system", "content": """
-                    Bạn là một hệ thống phân loại câu hỏi thông minh. Nhiệm vụ của bạn là xác định xem câu hỏi có cần tìm kiếm thông tin thực tế, tin tức mới hoặc dữ liệu cập nhật không.
+                    Bạn là một hệ thống phân loại câu hỏi thông minh. Nhiệm vụ của bạn là:
+                    1. Xác định xem câu hỏi có cần tìm kiếm thông tin thực tế, tin tức mới hoặc dữ liệu cập nhật không.
+                    2. Trích xuất thông tin thời gian cụ thể từ câu truy vấn nếu có.
                     
                     Câu hỏi cần search khi:
                     1. Liên quan đến tin tức, sự kiện hiện tại hoặc gần đây
@@ -775,21 +811,34 @@ def detect_search_intent(query, api_key):
                     3. Yêu cầu công thức nấu ăn phổ biến
                     4. Câu hỏi đơn giản về kiến thức phổ thông
                     5. Yêu cầu hỗ trợ sử dụng ứng dụng
+                    
+                    Thông tin thời gian cần trích xuất bao gồm:
+                    1. Ngày cụ thể (hôm nay, hôm qua, ngày mai, ngày 15/3, v.v.)
+                    2. Khoảng thời gian (tuần này, tuần trước, tháng trước, năm nay, v.v.)
+                    3. Năm cụ thể (2023, 2024, v.v.)
+                    
+                    Với câu truy vấn có yêu cầu thông tin thời gian, hãy tạo câu truy vấn tìm kiếm tối ưu kết hợp nội dung và yếu tố thời gian.
                 """},
-                {"role": "user", "content": f"Câu hỏi: {query}\n\nCâu hỏi này có cần tìm kiếm thông tin thực tế không? Trả lời JSON với 2 trường: need_search (true/false) và search_query (câu truy vấn tìm kiếm tối ưu nếu cần search)."}
+                {"role": "user", "content": f"Câu hỏi: {query}\n\nPhân tích câu hỏi này và trả lời bằng JSON với 3 trường: need_search (true/false), search_query (câu truy vấn tìm kiếm tối ưu nếu cần search), và time_info (thông tin thời gian cụ thể được trích xuất, trả về chuỗi rỗng nếu không có)."}
             ],
             temperature=0.1,
-            max_tokens=200,
+            max_tokens=300,
             response_format={"type": "json_object"}
         )
         
         result = json.loads(response.choices[0].message.content)
         
-        return result.get("need_search", False), result.get("search_query", query)
+        need_search = result.get("need_search", False)
+        search_query = result.get("search_query", query)
+        time_info = result.get("time_info", "")
+        
+        logger.info(f"Ý định tìm kiếm: {need_search}, Query: {search_query}, Thời gian: {time_info}")
+        
+        return need_search, search_query, time_info
     
     except Exception as e:
         logger.error(f"Lỗi khi phát hiện ý định tìm kiếm: {e}")
-        return False, query
+        return False, query, ""
 
 # Hàm stream phản hồi từ GPT-4o-mini
 def stream_llm_response(api_key, system_prompt="", current_member=None):
@@ -853,22 +902,24 @@ def stream_llm_response(api_key, system_prompt="", current_member=None):
                 placeholder = st.empty()
                 placeholder.info("🔍 Đang phân tích câu hỏi của bạn...")
                 
-                need_search, search_query = detect_search_intent(last_user_message, api_key)
+                need_search, search_query, time_info = detect_search_intent(last_user_message, api_key)
                 
                 if need_search:
-                    placeholder.info(f"🔍 Đang tìm kiếm thông tin về: '{search_query}'...")
-                    search_result = search_and_summarize(tavily_api_key, search_query, api_key)
+                    time_context = f" [{time_info}]" if time_info else ""
+                    placeholder.info(f"🔍 Đang tìm kiếm thông tin về: '{search_query}'{time_context}...")
+                    search_result = search_and_summarize(tavily_api_key, search_query, api_key, time_info)
                     
                     # Thêm kết quả tìm kiếm vào hệ thống prompt
-                    search_info = f"""
+                    time_context_prompt = f" (trong khoảng thời gian: {time_info})" if time_info else ""
+                    search_info = f\"\"\"
                     THÔNG TIN TÌM KIẾM:
-                    Câu hỏi: {search_query}
+                    Câu hỏi: {search_query}{time_context_prompt}
                     
                     Kết quả:
                     {search_result}
                     
                     Hãy sử dụng thông tin này để trả lời câu hỏi của người dùng. Đảm bảo đề cập đến nguồn thông tin.
-                    """
+                    \"\"\"
                     
                     messages[0]["content"] = system_prompt + "\n\n" + search_info
                     placeholder.empty()
