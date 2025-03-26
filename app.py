@@ -1968,7 +1968,7 @@ if __name__=="__main__":
                     summary = generate_chat_summary(st.session_state.messages, openai_api_key)
                     save_chat_history(st.session_state.current_member, st.session_state.messages, summary)
                 # Xóa tin nhắn
-                st.session_state.pop("messages", None)
+            st.session_state.pop("messages", None)
 
         st.button(
             "🗑️ Xóa lịch sử trò chuyện", 
