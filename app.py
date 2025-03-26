@@ -911,7 +911,7 @@ def stream_llm_response(api_key, system_prompt="", current_member=None):
                     
                     # Thêm kết quả tìm kiếm vào hệ thống prompt
                     time_context_prompt = f" (trong khoảng thời gian: {time_info})" if time_info else ""
-                    search_info = f\"\"\"
+                    search_info = f"""
                     THÔNG TIN TÌM KIẾM:
                     Câu hỏi: {search_query}{time_context_prompt}
                     
@@ -919,7 +919,7 @@ def stream_llm_response(api_key, system_prompt="", current_member=None):
                     {search_result}
                     
                     Hãy sử dụng thông tin này để trả lời câu hỏi của người dùng. Đảm bảo đề cập đến nguồn thông tin.
-                    \"\"\"
+                    """
                     
                     messages[0]["content"] = system_prompt + "\n\n" + search_info
                     placeholder.empty()
