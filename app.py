@@ -40,8 +40,9 @@ VIETNAMESE_NEWS_DOMAINS = [
     "baochinhphu.vn",   # Cổng Thông tin điện tử Chính phủ
     "laodong.vn",       # Báo Lao Động
     "tienphong.vn",     # Báo Tiền Phong
-    # "zingnews.vn",    # Cân nhắc nếu muốn thêm ZingNews
+     "zingnews.vn",    # Cân nhắc nếu muốn thêm ZingNews
     "cand.com.vn",      # Công an Nhân dân
+    "kenh14.vn"     
     "baophapluat.vn",   # Báo Pháp luật Việt Nam
 ]
 logger.info(f"Sử dụng danh sách {len(VIETNAMESE_NEWS_DOMAINS)} domain tin tức uy tín.")
